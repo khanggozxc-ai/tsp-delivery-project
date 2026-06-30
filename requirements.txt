@@ -1,0 +1,10 @@
+#==================
+# Thư viện sử dụng
+#==================
+
+streamlit
+pandas
+numpy
+folium
+streamlit-folium
+pytest
