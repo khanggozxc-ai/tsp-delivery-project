@@ -8,9 +8,7 @@ from streamlit_folium import st_folium
 from algorithms.brute_force import solve_brute_force
 from algorithms.nearest_neighbor import solve_nearest_neighbor
 from services.distance_service import build_distance_matrix
-from services.route_service import format_route
 from utils.validators import normalize_locations, validate_locations
-
 
 st.set_page_config(
     page_title="TSP Delivery Optimizer",
@@ -18,9 +16,18 @@ st.set_page_config(
     layout="wide",
 )
 
-
 DEFAULT_DATA_PATH = "data/locations_5.csv"
 
+def format_route(display_route: list[int], locations: pd.DataFrame) -> str:
+    """
+    Biến danh sách số (ví dụ: [0, 2, 1, 0]) thành chuỗi tên địa điểm trực quan
+    bằng các mũi tên (ví dụ: Kho trung tâm ➔ Cửa hàng A ➔ Cửa hàng B).
+    """
+    if not display_route or locations.empty:
+        return "Chưa có lộ trình"
+    
+    route_names = [locations.iloc[idx]["name"] for idx in display_route]
+    return " ➔ ".join(route_names)
 
 def load_default_data() -> pd.DataFrame:
     return pd.read_csv(DEFAULT_DATA_PATH)
