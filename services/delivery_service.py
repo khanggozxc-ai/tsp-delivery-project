@@ -11,7 +11,9 @@ def calculate_delivery_cost(
     total_distance: float,
     cost_per_km: float,
 ) -> float:
-    """Tính chi phí giao hàng theo tổng quãng đường."""
+    """
+    Tính chi phí giao hàng dựa trên tổng quãng đường.
+    """
 
     if total_distance < 0:
         raise ValueError("Tổng quãng đường không được âm.")
@@ -32,9 +34,9 @@ def build_eta_table(
     """
     Tạo bảng thời gian đến dự kiến tại từng địa điểm.
 
-    Trả về:
-    - DataFrame ETA.
-    - Tổng thời gian của chuyến đi theo phút.
+    Kết quả trả về:
+    - Bảng ETA.
+    - Tổng thời gian toàn chuyến theo phút.
     """
 
     if not display_route:
@@ -46,8 +48,8 @@ def build_eta_table(
         )
 
     rows: list[dict[str, object]] = []
-
     elapsed_minutes = 0.0
+
     first_location_index = display_route[0]
 
     for order, location_index in enumerate(display_route):
@@ -76,7 +78,7 @@ def build_eta_table(
             + timedelta(minutes=elapsed_minutes)
         )
 
-        is_return_to_depot = (
+        is_return_to_start = (
             order == len(display_route) - 1
             and order > 0
             and location_index == first_location_index
@@ -84,7 +86,7 @@ def build_eta_table(
 
         service_time = (
             0.0
-            if is_return_to_depot
+            if is_return_to_start
             else float(location["service_time"])
         )
 
@@ -120,6 +122,4 @@ def build_eta_table(
 
         elapsed_minutes += service_time
 
-    eta_table = pd.DataFrame(rows)
-
-    return eta_table, elapsed_minutes
+    return pd.DataFrame(rows), elapsed_minutes
