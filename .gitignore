@@ -24,3 +24,9 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+
+# SQLite runtime databases
+database/*.db
+database/*.db-journal
+database/*.sqlite
+database/*.sqlite3
