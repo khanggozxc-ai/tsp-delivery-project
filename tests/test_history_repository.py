@@ -74,3 +74,4 @@ def test_filter_and_delete(tmp_path):
 
     assert delete_all_history(database_path) == 1
     assert fetch_history(database_path=database_path).empty
+ #
