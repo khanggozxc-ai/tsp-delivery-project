@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime
 from io import BytesIO
 
@@ -17,12 +18,17 @@ from services.delivery_service import (
     build_road_eta_table,
     calculate_delivery_cost,
 )
+from database.history_repository import (
+    initialize_database,
+    save_history,
+)
 from services.road_routing_service import (
     build_road_matrices,
     get_route_geojson,
     get_route_summary,
     locations_to_coordinates,
 )
+from views.history_dashboard import render_history_dashboard
 from utils.validators import (
     normalize_locations,
     validate_locations,
@@ -156,6 +162,9 @@ def initialize_session_state() -> None:
     if "uploader_version" not in st.session_state:
         st.session_state.uploader_version = 0
 
+    if "last_saved_history_id" not in st.session_state:
+        st.session_state.last_saved_history_id = None
+
 
 # =========================================================
 # THANH BÊN VÀ QUẢN LÝ DỮ LIỆU
@@ -182,6 +191,14 @@ def render_sidebar() -> None:
         - Chi phí giao hàng
         - Biểu đồ hội tụ
         - Bản đồ bám theo đường giao thông
+
+        **Ngày 3**
+
+        - Lưu lịch sử bằng SQLite
+        - Dashboard thống kê
+        - So sánh thuật toán
+        - Xuất lịch sử CSV
+        - Xóa bản ghi lịch sử
         """
     )
 
@@ -788,11 +805,131 @@ def render_algorithm_controls() -> None:
                 cost_per_km=float(cost_per_km),
             )
 
+            result["return_to_start"] = bool(return_to_start)
+            result["route_type"] = (
+                "Khép kín" if return_to_start else "Mở"
+            )
+            result["start_index"] = int(start_index)
+            result["location_count"] = int(len(locations))
+
             st.session_state.result = result
+            st.session_state.last_saved_history_id = None
             st.success("Đã hoàn thành tối ưu lộ trình đường bộ.")
 
         except Exception as error:
             st.error(f"Không thể chạy thuật toán: {error}")
+
+
+def build_history_record(
+    result: dict,
+    locations: pd.DataFrame,
+) -> dict:
+    """Chuyển kết quả hiện tại thành bản ghi có thể lưu trong SQLite."""
+
+    display_route = [int(index) for index in result["display_route"]]
+    route_names = [
+        str(locations.iloc[index]["name"])
+        for index in display_route
+    ]
+
+    start_index = int(result.get("start_index", display_route[0]))
+    start_location = locations.iloc[start_index]
+    parameters = result.get("parameters") or {}
+
+    locations_snapshot = [
+        {
+            "id": int(row["id"]),
+            "name": str(row["name"]),
+            "latitude": float(row["latitude"]),
+            "longitude": float(row["longitude"]),
+            "service_time": float(row["service_time"]),
+        }
+        for _, row in locations.iterrows()
+    ]
+
+    return {
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "algorithm": str(result["algorithm"]),
+        "route_type": str(result.get("route_type", "Khép kín")),
+        "start_location_id": int(start_location["id"]),
+        "start_location_name": str(start_location["name"]),
+        "location_count": int(len(locations)),
+        "route_indices": json.dumps(display_route),
+        "route_names": " → ".join(route_names),
+        "distance_km": float(result["distance"]),
+        "matrix_distance_km": float(
+            result.get("optimized_matrix_distance", result["distance"])
+        ),
+        "execution_time_seconds": float(result["execution_time"]),
+        "delivery_cost": float(result["delivery_cost"]),
+        "total_duration_minutes": float(
+            result["total_duration_minutes"]
+        ),
+        "road_duration_seconds": float(
+            result.get("road_duration_seconds", 0.0)
+        ),
+        "average_speed_kmh": float(
+            result.get("average_speed_kmh", 0.0)
+        ),
+        "cost_per_km": float(result["cost_per_km"]),
+        "vehicle_label": str(
+            result.get("vehicle_label", "Xe giao hàng")
+        ),
+        "routing_profile": str(
+            result.get("routing_profile", "driving-car")
+        ),
+        "departure_time": result["departure_datetime"].isoformat(),
+        "evaluated_routes": (
+            int(result["evaluated_routes"])
+            if result.get("evaluated_routes") is not None
+            else None
+        ),
+        "improvement_distance": (
+            float(result["improvement_distance"])
+            if result.get("improvement_distance") is not None
+            else None
+        ),
+        "improvement_percentage": (
+            float(result["improvement_percentage"])
+            if result.get("improvement_percentage") is not None
+            else None
+        ),
+        "ga_parameters": json.dumps(
+            parameters,
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+        "locations_snapshot": json.dumps(
+            locations_snapshot,
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+    }
+
+
+def render_save_history_button(
+    result: dict,
+    locations: pd.DataFrame,
+) -> None:
+    """Hiển thị nút lưu kết quả và ngăn lưu lặp cùng một lần chạy."""
+
+    st.markdown("#### Lưu kết quả")
+
+    if st.button(
+        "Lưu kết quả vào lịch sử",
+        use_container_width=True,
+        key="save_optimization_history",
+    ):
+        record = build_history_record(result, locations)
+        created, record_id = save_history(record)
+        st.session_state.last_saved_history_id = record_id
+
+        if created:
+            st.success(f"Đã lưu kết quả với ID {record_id}.")
+        else:
+            st.info(
+                f"Kết quả này đã tồn tại trong lịch sử với ID {record_id}."
+            )
 
 
 # =========================================================
@@ -1166,26 +1303,30 @@ def render_result() -> None:
     else:
         st.warning("Chưa có dữ liệu tuyến đường bộ.")
 
+    render_save_history_button(result, locations)
+
 
 # =========================================================
 # MAIN
 # =========================================================
 
 def main() -> None:
+    initialize_database()
     initialize_session_state()
     render_sidebar()
 
-    st.title("🚚 Hệ thống tối ưu lộ trình giao hàng")
+    st.title("🚚 Bài toán tối ưu lộ trình giao hàng bằng TSP")
 
     st.caption(
         "Travelling Salesman Problem — Genetic Algorithm, 2-opt "
         "và định tuyến đường giao thông"
     )
 
-    tab_data, tab_optimization = st.tabs(
+    tab_data, tab_optimization, tab_history = st.tabs(
         [
             "Quản lý địa điểm",
             "Tối ưu lộ trình",
+            "Lịch sử & thống kê",
         ]
     )
 
@@ -1201,7 +1342,9 @@ def main() -> None:
         st.divider()
         render_result()
 
+    with tab_history:
+        render_history_dashboard()
+
 
 if __name__ == "__main__":
     main()
-    
