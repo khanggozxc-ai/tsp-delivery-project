@@ -59,6 +59,664 @@ ROUTING_PROFILE_MAPPING = {
 }
 
 
+
+# =========================================================
+# GIAO DIỆN VÀ PHONG CÁCH HIỂN THỊ
+# =========================================================
+
+def apply_custom_ui() -> None:
+    """Áp dụng giao diện logistics-tech và hiệu ứng tương tác."""
+
+    st.markdown(
+        """
+        <style>
+        :root {
+            --primary: #075985;
+            --primary-2: #0284c7;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --surface: rgba(255, 255, 255, 0.86);
+            --surface-strong: rgba(255, 255, 255, 0.96);
+            --border: rgba(7, 89, 133, 0.12);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --shadow: 0 12px 30px rgba(15, 89, 125, 0.10);
+            --shadow-hover: 0 18px 38px rgba(15, 89, 125, 0.18);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .stApp {
+            color: var(--text-main);
+            background:
+                radial-gradient(
+                    circle at 8% 2%,
+                    rgba(14, 165, 233, 0.22),
+                    transparent 30%
+                ),
+                radial-gradient(
+                    circle at 92% 12%,
+                    rgba(16, 185, 129, 0.16),
+                    transparent 30%
+                ),
+                radial-gradient(
+                    circle at 52% 95%,
+                    rgba(6, 182, 212, 0.11),
+                    transparent 34%
+                ),
+                linear-gradient(
+                    135deg,
+                    #f8fcff 0%,
+                    #eef8fd 45%,
+                    #eefbf6 100%
+                );
+            background-attachment: fixed;
+        }
+
+        [data-testid="stAppViewContainer"] > .main {
+            background:
+                linear-gradient(
+                    rgba(255, 255, 255, 0.05),
+                    rgba(255, 255, 255, 0.05)
+                );
+        }
+
+        [data-testid="stHeader"] {
+            background: rgba(248, 252, 255, 0.72);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(7, 89, 133, 0.06);
+        }
+
+        .block-container {
+            max-width: 1240px;
+            padding-top: 1.45rem;
+            padding-bottom: 3rem;
+        }
+
+        /* Hero */
+        .hero-banner {
+            position: relative;
+            overflow: hidden;
+            padding: 30px 32px;
+            margin-bottom: 22px;
+            border-radius: 26px;
+            color: white;
+            background:
+                linear-gradient(
+                    120deg,
+                    rgba(3, 105, 161, 0.98) 0%,
+                    rgba(2, 132, 199, 0.96) 52%,
+                    rgba(6, 182, 212, 0.92) 100%
+                );
+            box-shadow: 0 20px 50px rgba(2, 84, 125, 0.24);
+            isolation: isolate;
+            animation: hero-enter 0.55s ease-out both;
+        }
+
+        .hero-banner::before,
+        .hero-banner::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            z-index: -1;
+        }
+
+        .hero-banner::before {
+            width: 230px;
+            height: 230px;
+            top: -105px;
+            right: 5%;
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        .hero-banner::after {
+            width: 165px;
+            height: 165px;
+            right: -45px;
+            bottom: -80px;
+            border: 26px solid rgba(255, 255, 255, 0.09);
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 13px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(10px);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            max-width: 940px;
+            margin: 0;
+            font-size: clamp(1.8rem, 4vw, 2.65rem);
+            font-weight: 850;
+            line-height: 1.15;
+            letter-spacing: -0.025em;
+        }
+
+        .hero-subtitle {
+            max-width: 900px;
+            margin-top: 11px;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .hero-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .hero-feature {
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.13);
+            border: 1px solid rgba(255, 255, 255, 0.17);
+            font-size: 0.86rem;
+            font-weight: 650;
+            transition:
+                transform 0.22s ease,
+                background 0.22s ease;
+        }
+
+        .hero-feature:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.21);
+        }
+
+        /* Section heading */
+        .section-heading {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 17px 18px;
+            margin: 6px 0 15px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--surface);
+            box-shadow: 0 9px 25px rgba(15, 89, 125, 0.07);
+            backdrop-filter: blur(14px);
+            transition:
+                transform 0.25s ease,
+                box-shadow 0.25s ease,
+                border-color 0.25s ease;
+        }
+
+        .section-heading:hover {
+            transform: translateY(-3px);
+            border-color: rgba(2, 132, 199, 0.25);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .section-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 43px;
+            width: 43px;
+            height: 43px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #e0f2fe, #cffafe);
+            font-size: 1.3rem;
+            box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.08);
+        }
+
+        .section-title {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .section-description {
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            line-height: 1.55;
+        }
+
+        /* Sidebar */
+        [data-testid="stSidebar"] {
+            background:
+                radial-gradient(
+                    circle at 30% 0%,
+                    rgba(14, 165, 233, 0.19),
+                    transparent 28%
+                ),
+                linear-gradient(180deg, #f5fbff 0%, #edf8f4 100%);
+            border-right: 1px solid rgba(7, 89, 133, 0.08);
+        }
+
+        [data-testid="stSidebarContent"] {
+            padding-top: 1.05rem;
+        }
+
+        .sidebar-brand {
+            padding: 18px;
+            margin-bottom: 15px;
+            border-radius: 20px;
+            color: white;
+            background: linear-gradient(145deg, #075985, #0891b2);
+            box-shadow: 0 14px 30px rgba(7, 89, 133, 0.20);
+        }
+
+        .sidebar-brand-title {
+            font-size: 1.15rem;
+            font-weight: 850;
+        }
+
+        .sidebar-brand-subtitle {
+            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+
+        .roadmap-card {
+            padding: 13px 14px;
+            margin: 9px 0;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.74);
+            transition:
+                transform 0.22s ease,
+                box-shadow 0.22s ease,
+                background 0.22s ease;
+        }
+
+        .roadmap-card:hover {
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 24px rgba(7, 89, 133, 0.10);
+        }
+
+        .roadmap-title {
+            color: var(--primary);
+            font-size: 0.9rem;
+            font-weight: 800;
+        }
+
+        .roadmap-content {
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 0.79rem;
+            line-height: 1.55;
+        }
+
+        /* Tabs */
+        div[data-baseweb="tab-list"] {
+            gap: 9px;
+            padding: 6px;
+            border: 1px solid rgba(7, 89, 133, 0.09);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, 0.58);
+            box-shadow: 0 8px 22px rgba(7, 89, 133, 0.06);
+            backdrop-filter: blur(14px);
+        }
+
+        button[data-baseweb="tab"] {
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 12px;
+            color: #334155;
+            font-weight: 720;
+            transition:
+                transform 0.22s ease,
+                background 0.22s ease,
+                color 0.22s ease,
+                box-shadow 0.22s ease;
+        }
+
+        button[data-baseweb="tab"]:hover {
+            transform: translateY(-2px);
+            color: var(--primary);
+            background: #e8f7fd;
+            box-shadow: 0 8px 17px rgba(7, 89, 133, 0.10);
+        }
+
+        button[data-baseweb="tab"][aria-selected="true"] {
+            color: white !important;
+            background: linear-gradient(
+                135deg,
+                var(--primary),
+                var(--primary-2)
+            ) !important;
+            box-shadow: 0 9px 20px rgba(2, 132, 199, 0.23);
+        }
+
+        div[data-baseweb="tab-highlight"] {
+            display: none;
+        }
+
+        /* Buttons */
+        .stButton > button,
+        .stDownloadButton > button,
+        [data-testid="stFormSubmitButton"] > button {
+            min-height: 43px;
+            border: 1px solid rgba(2, 132, 199, 0.14);
+            border-radius: 13px;
+            color: #075985;
+            background: linear-gradient(135deg, #f8fdff, #e7f7fc);
+            font-weight: 750;
+            box-shadow: 0 7px 17px rgba(7, 89, 133, 0.08);
+            transition:
+                transform 0.22s ease,
+                box-shadow 0.22s ease,
+                filter 0.22s ease,
+                border-color 0.22s ease;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        [data-testid="stFormSubmitButton"] > button:hover {
+            transform: translateY(-2px);
+            border-color: rgba(2, 132, 199, 0.33);
+            box-shadow: 0 13px 26px rgba(7, 89, 133, 0.17);
+            filter: brightness(1.015);
+        }
+
+        .stButton > button:active,
+        .stDownloadButton > button:active,
+        [data-testid="stFormSubmitButton"] > button:active {
+            transform: translateY(0) scale(0.985);
+        }
+
+        button[kind="primary"] {
+            color: white !important;
+            border: 0 !important;
+            background: linear-gradient(
+                135deg,
+                #075985 0%,
+                #0284c7 58%,
+                #06b6d4 100%
+            ) !important;
+            box-shadow: 0 12px 25px rgba(2, 132, 199, 0.24) !important;
+        }
+
+        button[kind="primary"]:hover {
+            box-shadow: 0 17px 32px rgba(2, 132, 199, 0.31) !important;
+        }
+
+        /* Inputs */
+        div[data-baseweb="select"] > div,
+        [data-testid="stTextInput"] input,
+        [data-testid="stNumberInput"] input,
+        [data-testid="stTimeInput"] input,
+        [data-testid="stTextArea"] textarea {
+            border-color: rgba(7, 89, 133, 0.15) !important;
+            border-radius: 12px !important;
+            background: rgba(255, 255, 255, 0.90) !important;
+            transition:
+                border-color 0.22s ease,
+                box-shadow 0.22s ease,
+                background 0.22s ease;
+        }
+
+        div[data-baseweb="select"] > div:hover,
+        [data-testid="stTextInput"] input:hover,
+        [data-testid="stNumberInput"] input:hover,
+        [data-testid="stTimeInput"] input:hover,
+        [data-testid="stTextArea"] textarea:hover {
+            border-color: rgba(2, 132, 199, 0.48) !important;
+            background: white !important;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.09);
+        }
+
+        div[data-baseweb="select"] > div:focus-within,
+        [data-testid="stTextInput"] input:focus,
+        [data-testid="stNumberInput"] input:focus,
+        [data-testid="stTimeInput"] input:focus,
+        [data-testid="stTextArea"] textarea:focus {
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.13) !important;
+        }
+
+        /* File uploader */
+        [data-testid="stFileUploader"] {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--surface);
+            box-shadow: 0 8px 22px rgba(7, 89, 133, 0.06);
+            transition:
+                transform 0.23s ease,
+                box-shadow 0.23s ease;
+        }
+
+        [data-testid="stFileUploader"]:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        [data-testid="stFileUploaderDropzone"] {
+            border: 1.5px dashed rgba(2, 132, 199, 0.28);
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f8fdff, #f0fbfb);
+        }
+
+        /* Metrics */
+        [data-testid="stMetric"] {
+            height: 100%;
+            padding: 15px 15px 14px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(14px);
+            transition:
+                transform 0.24s ease,
+                box-shadow 0.24s ease,
+                border-color 0.24s ease,
+                background 0.24s ease;
+        }
+
+        [data-testid="stMetric"]:hover {
+            transform: translateY(-5px);
+            border-color: rgba(2, 132, 199, 0.24);
+            background: var(--surface-strong);
+            box-shadow: var(--shadow-hover);
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: #475569;
+            font-weight: 650;
+        }
+
+        [data-testid="stMetricValue"] {
+            color: #075985;
+            font-weight: 850;
+        }
+
+        /* Data, forms and expanders */
+        [data-testid="stDataFrame"],
+        [data-testid="stDataEditor"],
+        [data-testid="stForm"],
+        [data-testid="stExpander"] {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 9px 24px rgba(7, 89, 133, 0.07);
+            overflow: hidden;
+            transition:
+                transform 0.22s ease,
+                box-shadow 0.22s ease,
+                border-color 0.22s ease;
+        }
+
+        [data-testid="stDataFrame"]:hover,
+        [data-testid="stDataEditor"]:hover,
+        [data-testid="stForm"]:hover,
+        [data-testid="stExpander"]:hover {
+            border-color: rgba(2, 132, 199, 0.22);
+            box-shadow: 0 14px 29px rgba(7, 89, 133, 0.12);
+        }
+
+        [data-testid="stForm"] {
+            padding: 16px;
+        }
+
+        /* Alerts */
+        [data-testid="stAlert"] {
+            border-radius: 15px;
+            border: 1px solid rgba(7, 89, 133, 0.10);
+            box-shadow: 0 8px 19px rgba(7, 89, 133, 0.06);
+        }
+
+        /* Charts and maps */
+        [data-testid="stVegaLiteChart"],
+        [data-testid="stArrowVegaLiteChart"],
+        iframe {
+            border-radius: 18px !important;
+            box-shadow: 0 13px 30px rgba(7, 89, 133, 0.12);
+        }
+
+        iframe {
+            border: 1px solid rgba(7, 89, 133, 0.10) !important;
+        }
+
+        /* Titles and dividers */
+        h1, h2, h3, h4 {
+            color: #0f4c6e;
+        }
+
+        h4 {
+            margin-top: 1.3rem !important;
+            padding-left: 10px;
+            border-left: 4px solid #06b6d4;
+        }
+
+        hr {
+            margin: 1.35rem 0 !important;
+            border-color: rgba(7, 89, 133, 0.10) !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #edf7fb;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border: 2px solid #edf7fb;
+            border-radius: 999px;
+            background: linear-gradient(#38bdf8, #0e7490);
+        }
+
+        @keyframes hero-enter {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .hero-banner {
+                padding: 24px 20px;
+                border-radius: 21px;
+            }
+
+            .hero-features {
+                gap: 7px;
+            }
+
+            button[data-baseweb="tab"] {
+                padding: 0 10px;
+                font-size: 0.82rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_hero_header() -> None:
+    """Hiển thị phần giới thiệu chính của bài toán."""
+
+    st.markdown(
+        """
+        <section class="hero-banner">
+            <div class="hero-badge">
+                AI PROJECT · LOGISTICS OPTIMIZATION
+            </div>
+            <h1 class="hero-title">
+                Bài toán tối ưu lộ trình giao hàng bằng TSP
+            </h1>
+            <div class="hero-subtitle">
+                Ứng dụng minh họa các thuật toán giải Traveling Salesman
+                Problem để đề xuất thứ tự giao hàng, giảm tổng quãng đường
+                và hỗ trợ ước tính chi phí, thời gian di chuyển trên mạng
+                lưới đường giao thông thực tế.
+            </div>
+            <div class="hero-features">
+                <div class="hero-feature">🧠 5 phương pháp tối ưu</div>
+                <div class="hero-feature">🗺️ Định tuyến đường bộ</div>
+                <div class="hero-feature">⏱️ ETA theo từng chặng</div>
+                <div class="hero-feature">📊 Lịch sử và thống kê</div>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_section_title(
+    icon: str,
+    title: str,
+    description: str,
+) -> None:
+    """Hiển thị tiêu đề khu vực dưới dạng thẻ thông tin."""
+
+    st.markdown(
+        f"""
+        <div class="section-heading">
+            <div class="section-icon">{icon}</div>
+            <div>
+                <div class="section-title">{title}</div>
+                <div class="section-description">{description}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 # =========================================================
 # OPENROUTESERVICE
 # =========================================================
@@ -173,41 +831,57 @@ def initialize_session_state() -> None:
 def render_sidebar() -> None:
     """Hiển thị thanh điều hướng bên trái."""
 
-    st.sidebar.title("Điều hướng")
+    st.sidebar.markdown(
+        """
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-title">🚚 TSP Delivery Lab</div>
+            <div class="sidebar-brand-subtitle">
+                Không gian thử nghiệm thuật toán tối ưu lộ trình giao hàng
+                chặng cuối.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.sidebar.markdown(
         """
-        **Ngày 1**
-
-        - Quản lý địa điểm
-        - Brute Force
-        - Nearest Neighbor
-
-        **Ngày 2**
-
-        - Genetic Algorithm
-        - 2-opt
-        - ETA đường bộ
-        - Chi phí giao hàng
-        - Biểu đồ hội tụ
-        - Bản đồ bám theo đường giao thông
-
-        **Ngày 3**
-
-        - Lưu lịch sử bằng SQLite
-        - Dashboard thống kê
-        - So sánh thuật toán
-        - Xuất lịch sử CSV
-        - Xóa bản ghi lịch sử
-        """
+        <div class="roadmap-card">
+            <div class="roadmap-title">Ngày 1 · Nền tảng</div>
+            <div class="roadmap-content">
+                Quản lý địa điểm · Brute Force · Nearest Neighbor
+            </div>
+        </div>
+        <div class="roadmap-card">
+            <div class="roadmap-title">Ngày 2 · Tối ưu nâng cao</div>
+            <div class="roadmap-content">
+                Genetic Algorithm · 2-opt · ETA · Chi phí · Bản đồ đường bộ
+            </div>
+        </div>
+        <div class="roadmap-card">
+            <div class="roadmap-title">Ngày 3 · Phân tích kết quả</div>
+            <div class="roadmap-content">
+                SQLite · Dashboard · So sánh thuật toán · Xuất CSV
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    if not get_ors_api_key():
+    st.sidebar.markdown("#### Trạng thái kết nối")
+
+    if get_ors_api_key():
+        st.sidebar.success("OpenRouteService đã sẵn sàng.")
+    else:
         st.sidebar.warning(
             "Chưa tìm thấy ORS_API_KEY trong "
             ".streamlit/secrets.toml."
         )
 
+    st.sidebar.caption(
+        "Khoảng cách và thời gian sử dụng dữ liệu định tuyến đường bộ, "
+        "không phản ánh giao thông thời gian thực."
+    )
 
 def render_data_import() -> None:
     """
@@ -217,7 +891,11 @@ def render_data_import() -> None:
     tránh làm mất kết quả khi Streamlit rerun.
     """
 
-    st.subheader("1. Nhập dữ liệu")
+    render_section_title(
+        "📥",
+        "1. Nhập dữ liệu",
+        "Tải danh sách địa điểm từ CSV hoặc khôi phục bộ dữ liệu mẫu.",
+    )
 
     uploader_key = (
         f"locations_csv_uploader_"
@@ -255,7 +933,7 @@ def render_data_import() -> None:
             st.error(f"Không thể đọc file CSV: {error}")
 
     if st.button(
-        "Khôi phục dữ liệu mẫu",
+        "↻ Khôi phục dữ liệu mẫu",
         key="restore_default_data_button",
     ):
         st.session_state.locations = load_default_data()
@@ -268,7 +946,11 @@ def render_data_import() -> None:
 def render_add_location_form() -> None:
     """Form thêm một địa điểm mới."""
 
-    st.subheader("2. Thêm địa điểm")
+    render_section_title(
+        "➕",
+        "2. Thêm địa điểm",
+        "Bổ sung điểm giao hàng mới cùng tọa độ và thời gian phục vụ.",
+    )
 
     with st.form(
         "add_location_form",
@@ -301,7 +983,7 @@ def render_add_location_form() -> None:
                 step=1,
             )
 
-        submitted = st.form_submit_button("Thêm địa điểm")
+        submitted = st.form_submit_button("➕ Thêm địa điểm")
 
     if not submitted:
         return
@@ -351,7 +1033,11 @@ def render_add_location_form() -> None:
 def render_location_editor() -> None:
     """Bảng cho phép sửa và xóa địa điểm."""
 
-    st.subheader("3. Danh sách địa điểm")
+    render_section_title(
+        "📍",
+        "3. Danh sách địa điểm",
+        "Chỉnh sửa trực tiếp dữ liệu đầu vào trước khi chạy thuật toán.",
+    )
 
     edited_locations = st.data_editor(
         st.session_state.locations,
@@ -387,7 +1073,7 @@ def render_location_editor() -> None:
         key="location_editor",
     )
 
-    if st.button("Lưu thay đổi danh sách"):
+    if st.button("💾 Lưu thay đổi danh sách"):
         edited_locations = normalize_locations(edited_locations)
         errors = validate_locations(edited_locations)
 
@@ -548,7 +1234,11 @@ def enrich_result_with_delivery_information(
 def render_algorithm_controls() -> None:
     """Hiển thị toàn bộ cấu hình tối ưu."""
 
-    st.subheader("4. Cấu hình lộ trình")
+    render_section_title(
+        "⚙️",
+        "4. Cấu hình lộ trình",
+        "Chọn điểm xuất phát, thuật toán, phương tiện và thông số vận hành.",
+    )
 
     locations = st.session_state.locations
     errors = validate_locations(locations)
@@ -722,7 +1412,7 @@ def render_algorithm_controls() -> None:
     )
 
     if st.button(
-        "Tối ưu lộ trình",
+        "🚀 Tối ưu lộ trình",
         type="primary",
         use_container_width=True,
     ):
@@ -916,7 +1606,7 @@ def render_save_history_button(
     st.markdown("#### Lưu kết quả")
 
     if st.button(
-        "Lưu kết quả vào lịch sử",
+        "💾 Lưu kết quả vào lịch sử",
         use_container_width=True,
         key="save_optimization_history",
     ):
@@ -950,6 +1640,7 @@ def create_route_map(
         location=[center_latitude, center_longitude],
         zoom_start=13,
         control_scale=True,
+        tiles="CartoDB positron",
     )
 
     first_index = display_route[0]
@@ -990,8 +1681,9 @@ def create_route_map(
         route_geojson,
         name="Lộ trình đường bộ",
         style_function=lambda feature: {
+            "color": "#0284c7",
             "weight": 6,
-            "opacity": 0.85,
+            "opacity": 0.90,
         },
         tooltip="Lộ trình giao hàng",
     ).add_to(route_map)
@@ -1146,7 +1838,11 @@ def render_result() -> None:
 
     locations = st.session_state.locations
 
-    st.subheader("5. Kết quả")
+    render_section_title(
+        "📈",
+        "5. Kết quả tối ưu",
+        "Theo dõi quãng đường, chi phí, thời gian, ETA và tuyến đường đề xuất.",
+    )
 
     metric_1, metric_2, metric_3, metric_4 = st.columns(4)
 
@@ -1313,20 +2009,16 @@ def render_result() -> None:
 def main() -> None:
     initialize_database()
     initialize_session_state()
+
+    apply_custom_ui()
     render_sidebar()
-
-    st.title("🚚 Bài toán tối ưu lộ trình giao hàng bằng TSP")
-
-    st.caption(
-        "Travelling Salesman Problem — Genetic Algorithm, 2-opt "
-        "và định tuyến đường giao thông"
-    )
+    render_hero_header()
 
     tab_data, tab_optimization, tab_history = st.tabs(
         [
-            "Quản lý địa điểm",
-            "Tối ưu lộ trình",
-            "Lịch sử & thống kê",
+            "📍 Quản lý địa điểm",
+            "🧠 Tối ưu lộ trình",
+            "📊 Lịch sử & thống kê",
         ]
     )
 
