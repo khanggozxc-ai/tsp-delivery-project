@@ -30,3 +30,7 @@ database/*.db
 database/*.db-journal
 database/*.sqlite
 database/*.sqlite3
+
+data/optimization_history.db
+data/optimization_history.db-shm
+data/optimization_history.db-wal
