@@ -8,3 +8,8 @@ numpy
 folium
 streamlit-folium
 pytest
+
+# Lệnh chạy thư viện: 
+***
+# pip install -r requirements.txt
+***

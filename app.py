@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+<<<<<<< HEAD
 from datetime import datetime
+=======
+import hashlib
+from datetime import datetime
+from io import BytesIO
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
 import folium
 import pandas as pd
 import streamlit as st
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 
 from algorithms.brute_force import solve_brute_force
 from algorithms.genetic_algorithm import solve_genetic_algorithm
@@ -21,6 +27,10 @@ from utils.validators import (
     validate_locations,
 )
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
 st.set_page_config(
     page_title="TSP Delivery Optimizer",
@@ -98,6 +108,12 @@ def initialize_session_state() -> None:
     if "result" not in st.session_state:
         st.session_state.result = None
 
+    if "uploaded_csv_hash" not in st.session_state:
+        st.session_state.uploaded_csv_hash = None
+
+    # Dùng để tạo key mới cho file_uploader khi khôi phục dữ liệu mẫu.
+    if "uploader_version" not in st.session_state:
+        st.session_state.uploader_version = 0
 
 def render_sidebar() -> None:
     """
@@ -129,22 +145,38 @@ def render_sidebar() -> None:
 def render_data_import() -> None:
     """
     Nhập dữ liệu từ file CSV.
+<<<<<<< HEAD
+=======
+
+    File chỉ được xử lý khi nội dung file mới khác
+    với file đã được tải trước đó.
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
     """
 
     st.subheader("1. Nhập dữ liệu")
 
+    uploader_key = (
+        f"locations_csv_uploader_"
+        f"{st.session_state.uploader_version}"
+    )
+
     uploaded_file = st.file_uploader(
         "Tải danh sách địa điểm từ CSV",
         type=["csv"],
+        key=uploader_key,
     )
 
     if uploaded_file is not None:
         try:
-            uploaded_data = pd.read_csv(uploaded_file)
-            uploaded_data = normalize_locations(uploaded_data)
+            # Đọc toàn bộ nội dung file dưới dạng bytes.
+            file_bytes = uploaded_file.getvalue()
 
-            errors = validate_locations(uploaded_data)
+            # Tạo mã nhận diện duy nhất cho nội dung file.
+            current_file_hash = hashlib.sha256(
+                file_bytes
+            ).hexdigest()
 
+<<<<<<< HEAD
             if errors:
                 for error in errors:
                     st.error(error)
@@ -155,15 +187,69 @@ def render_data_import() -> None:
                 st.success(
                     "Đã tải dữ liệu CSV thành công."
                 )
+=======
+            # Chỉ xử lý nếu đây là file mới.
+            if (
+                current_file_hash
+                != st.session_state.uploaded_csv_hash
+            ):
+                uploaded_data = pd.read_csv(
+                    BytesIO(file_bytes)
+                )
+
+                uploaded_data = normalize_locations(
+                    uploaded_data
+                )
+
+                errors = validate_locations(
+                    uploaded_data
+                )
+
+                if errors:
+                    for error in errors:
+                        st.error(error)
+                else:
+                    st.session_state.locations = (
+                        uploaded_data.reset_index(
+                            drop=True
+                        )
+                    )
+
+                    # Chỉ xóa kết quả khi dữ liệu thực sự thay đổi.
+                    st.session_state.result = None
+
+                    # Đánh dấu file này đã được xử lý.
+                    st.session_state.uploaded_csv_hash = (
+                        current_file_hash
+                    )
+
+                    st.success(
+                        "Đã tải dữ liệu CSV thành công."
+                    )
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
         except Exception as error:
             st.error(
                 f"Không thể đọc file CSV: {error}"
             )
+<<<<<<< HEAD
+=======
 
-    if st.button("Khôi phục dữ liệu mẫu"):
-        st.session_state.locations = load_default_data()
+    if st.button(
+        "Khôi phục dữ liệu mẫu",
+        key="restore_default_data_button",
+    ):
+        st.session_state.locations = (
+            load_default_data()
+        )
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
+
         st.session_state.result = None
+        st.session_state.uploaded_csv_hash = None
+
+        # Đổi key để xóa file đang giữ trong file uploader.
+        st.session_state.uploader_version += 1
+
         st.rerun()
 
 
@@ -381,8 +467,12 @@ def run_selected_algorithm(
         result["base_evaluated_routes"] = (
             base_result.get("evaluated_routes")
         )
+<<<<<<< HEAD
 
         return result
+=======
+        
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
     if algorithm == "Genetic Algorithm":
         return solve_genetic_algorithm(
@@ -778,6 +868,10 @@ def render_algorithm_controls() -> None:
             st.error(
                 f"Không thể chạy thuật toán: {error}"
             )
+<<<<<<< HEAD
+=======
+
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
 
 def create_route_map(
@@ -879,6 +973,7 @@ def create_route_map(
     return route_map
 
 
+<<<<<<< HEAD
 def render_convergence_chart(result: dict) -> None:
     """
     Hiển thị biểu đồ hội tụ của GA.
@@ -892,6 +987,21 @@ def render_convergence_chart(result: dict) -> None:
     st.markdown(
         "#### Biểu đồ hội tụ"
     )
+=======
+def render_convergence_chart(
+    result: dict,
+) -> None:
+    """
+    Hiển thị biểu đồ hội tụ của Genetic Algorithm.
+    """
+
+    history = result.get("history")
+
+    if history is None or len(history) == 0:
+        return
+
+    st.markdown("#### Biểu đồ hội tụ")
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
     convergence_data = pd.DataFrame(
         {
@@ -899,9 +1009,16 @@ def render_convergence_chart(result: dict) -> None:
                 1,
                 len(history) + 1,
             ),
+<<<<<<< HEAD
             "Khoảng cách tốt nhất (km)": (
                 history
             ),
+=======
+            "Khoảng cách tốt nhất (km)": [
+                float(value)
+                for value in history
+            ],
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
         }
     )
 
@@ -915,8 +1032,13 @@ def render_convergence_chart(result: dict) -> None:
     )
 
     st.caption(
+<<<<<<< HEAD
         "Đường biểu diễn giá trị tốt nhất "
         "được tìm thấy qua từng thế hệ."
+=======
+        "Khoảng cách tốt nhất được tìm thấy "
+        "sau từng thế hệ."
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
     )
 
 
@@ -1011,7 +1133,11 @@ def render_result() -> None:
     Hiển thị kết quả tối ưu.
     """
 
+<<<<<<< HEAD
     result = st.session_state.result
+=======
+    result = st.session_state.get("result")
+>>>>>>> fb83bb27bc063c59343a41d14e11460c0353de15
 
     if result is None:
         st.info(
@@ -1181,9 +1307,9 @@ def render_result() -> None:
         ],
     )
 
-    st_folium(
+    folium_static(
         route_map,
-        use_container_width=True,
+        width=1200,
         height=550,
     )
 
