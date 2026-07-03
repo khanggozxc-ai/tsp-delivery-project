@@ -80,3 +80,24 @@ Giả sử có 2 điểm trên bản đồ với tọa độ là $(\phi_1, \lamb
 ### Ngày 2: THUẬT TOÁN NÂNG CAO & DATABASE
 
 
+CẬP NHẬT NGÀY 3 — LỊCH SỬ VÀ DASHBOARD
+
+1. Chép các thư mục database/ và views/ vào thư mục gốc repository.
+2. Thay app.py hiện tại bằng app.py trong gói này.
+3. Thêm các dòng trong GITIGNORE_ADD.txt vào .gitignore.
+4. Không cần cài thư viện SQLite vì sqlite3 có sẵn trong Python.
+5. Chạy:
+   python -m py_compile app.py
+   python -m py_compile database/history_repository.py
+   python -m py_compile views/history_dashboard.py
+   streamlit run app.py
+
+Chức năng:
+- Lưu kết quả tối ưu vào SQLite.
+- Ngăn lưu trùng cùng một kết quả.
+- Dữ liệu vẫn còn sau khi khởi động lại.
+- Lọc lịch sử theo thuật toán.
+- Dashboard tổng hợp.
+- Biểu đồ so sánh thuật toán.
+- Xuất CSV.
+- Xóa một bản ghi hoặc toàn bộ lịch sử.
