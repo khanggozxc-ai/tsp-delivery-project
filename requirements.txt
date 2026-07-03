@@ -1,15 +1,13 @@
 #==================
 # Thư viện sử dụng
 #==================
-
 streamlit
 pandas
 numpy
 folium
 streamlit-folium
 pytest
+requests
 
 # Lệnh chạy thư viện: 
-***
 # pip install -r requirements.txt
-***
