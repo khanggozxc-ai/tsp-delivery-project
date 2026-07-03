@@ -1,385 +1,257 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 
-DEFAULT_DATABASE_PATH = Path("database") / "tsp_history.db"
+DEFAULT_DATABASE_PATH = Path("data/optimization_history.db")
 
 
-def _prepare_database_path(
-    database_path: str | Path,
-) -> Path:
-    """
-    Chuẩn hóa đường dẫn và tạo thư mục chứa database nếu chưa tồn tại.
-    """
+HISTORY_COLUMNS = [
+    "id",
+    "created_at",
+    "run_hash",
+    "algorithm",
+    "route_type",
+    "start_location_id",
+    "start_location_name",
+    "location_count",
+    "route_indices",
+    "route_names",
+    "distance_km",
+    "matrix_distance_km",
+    "execution_time_seconds",
+    "delivery_cost",
+    "total_duration_minutes",
+    "road_duration_seconds",
+    "average_speed_kmh",
+    "cost_per_km",
+    "vehicle_label",
+    "routing_profile",
+    "departure_time",
+    "evaluated_routes",
+    "improvement_distance",
+    "improvement_percentage",
+    "ga_parameters",
+    "locations_snapshot",
+]
 
+
+def _connect(database_path: str | Path = DEFAULT_DATABASE_PATH) -> sqlite3.Connection:
     path = Path(database_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    return path
-
-
-def _connect(
-    database_path: str | Path = DEFAULT_DATABASE_PATH,
-) -> sqlite3.Connection:
-    """
-    Tạo một kết nối SQLite mới.
-
-    Mỗi thao tác mở và đóng kết nối riêng để phù hợp với Streamlit.
-    """
-
-    path = _prepare_database_path(database_path)
-
-    connection = sqlite3.connect(str(path))
+    connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
-
     return connection
 
 
-def initialize_database(
-    database_path: str | Path = DEFAULT_DATABASE_PATH,
-) -> None:
-    """
-    Tạo bảng lịch sử nếu bảng chưa tồn tại.
-    """
-
-    create_table_sql = """
-    CREATE TABLE IF NOT EXISTS optimization_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-        created_at TEXT NOT NULL,
-        departure_time TEXT,
-
-        algorithm TEXT NOT NULL,
-        location_count INTEGER NOT NULL,
-
-        start_location TEXT NOT NULL,
-        route_type TEXT NOT NULL,
-
-        route_text TEXT NOT NULL,
-        route_indices_json TEXT NOT NULL,
-
-        total_distance REAL NOT NULL,
-        execution_time REAL NOT NULL,
-        total_duration_minutes REAL NOT NULL,
-        delivery_cost REAL NOT NULL,
-
-        average_speed_kmh REAL NOT NULL,
-        cost_per_km REAL NOT NULL,
-
-        improvement_distance REAL,
-        improvement_percentage REAL,
-
-        evaluated_routes INTEGER,
-
-        parameters_json TEXT,
-        convergence_history_json TEXT
-    );
-    """
+def initialize_database(database_path: str | Path = DEFAULT_DATABASE_PATH) -> None:
+    """Tạo bảng lịch sử nếu cơ sở dữ liệu chưa tồn tại."""
 
     with _connect(database_path) as connection:
-        connection.execute(create_table_sql)
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS optimization_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                run_hash TEXT NOT NULL UNIQUE,
+                algorithm TEXT NOT NULL,
+                route_type TEXT NOT NULL,
+                start_location_id INTEGER NOT NULL,
+                start_location_name TEXT NOT NULL,
+                location_count INTEGER NOT NULL,
+                route_indices TEXT NOT NULL,
+                route_names TEXT NOT NULL,
+                distance_km REAL NOT NULL,
+                matrix_distance_km REAL,
+                execution_time_seconds REAL NOT NULL,
+                delivery_cost REAL NOT NULL,
+                total_duration_minutes REAL NOT NULL,
+                road_duration_seconds REAL NOT NULL,
+                average_speed_kmh REAL NOT NULL,
+                cost_per_km REAL NOT NULL,
+                vehicle_label TEXT NOT NULL,
+                routing_profile TEXT NOT NULL,
+                departure_time TEXT NOT NULL,
+                evaluated_routes INTEGER,
+                improvement_distance REAL,
+                improvement_percentage REAL,
+                ga_parameters TEXT NOT NULL,
+                locations_snapshot TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_history_algorithm
+            ON optimization_history(algorithm)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_history_created_at
+            ON optimization_history(created_at DESC)
+            """
+        )
         connection.commit()
 
 
-def _serialize_datetime(value: Any) -> str | None:
-    """
-    Chuyển datetime thành chuỗi ISO.
-    """
+def build_run_hash(payload: dict[str, Any]) -> str:
+    """Tạo mã nhận diện để ngăn lưu lặp cùng một kết quả."""
 
-    if value is None:
-        return None
+    fingerprint_fields = {
+        "algorithm": payload.get("algorithm"),
+        "route_type": payload.get("route_type"),
+        "start_location_id": payload.get("start_location_id"),
+        "route_indices": payload.get("route_indices"),
+        "distance_km": round(float(payload.get("distance_km", 0.0)), 6),
+        "matrix_distance_km": round(
+            float(payload.get("matrix_distance_km") or 0.0), 6
+        ),
+        "cost_per_km": round(float(payload.get("cost_per_km", 0.0)), 2),
+        "vehicle_label": payload.get("vehicle_label"),
+        "routing_profile": payload.get("routing_profile"),
+        "departure_time": payload.get("departure_time"),
+        "ga_parameters": payload.get("ga_parameters"),
+        "locations_snapshot": payload.get("locations_snapshot"),
+    }
 
-    if isinstance(value, datetime):
-        return value.isoformat(timespec="minutes")
+    encoded = json.dumps(
+        fingerprint_fields,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
 
-    return str(value)
+    return hashlib.sha256(encoded).hexdigest()
 
 
-def save_optimization_result(
-    result: dict[str, Any],
-    locations: pd.DataFrame,
+def save_history(
+    record: dict[str, Any],
     database_path: str | Path = DEFAULT_DATABASE_PATH,
-) -> int:
+) -> tuple[bool, int]:
     """
-    Lưu một kết quả tối ưu vào SQLite.
+    Lưu một lần chạy.
 
-    Trả về ID của bản ghi vừa được tạo.
+    Returns:
+        (created, record_id): created=True nếu vừa thêm mới; False nếu bị trùng.
     """
 
     initialize_database(database_path)
 
-    display_route = list(result["display_route"])
+    payload = record.copy()
+    payload["run_hash"] = payload.get("run_hash") or build_run_hash(payload)
 
-    if not display_route:
-        raise ValueError("Không thể lưu một lộ trình trống.")
-
-    route_names: list[str] = []
-
-    for location_index in display_route:
-        if (
-            location_index < 0
-            or location_index >= len(locations)
-        ):
-            raise IndexError(
-                f"Chỉ số địa điểm {location_index} không hợp lệ."
-            )
-
-        route_names.append(
-            str(locations.iloc[location_index]["name"])
-        )
-
-    route_text = " → ".join(route_names)
-
-    start_location_index = display_route[0]
-
-    start_location_name = str(
-        locations.iloc[start_location_index]["name"]
-    )
-
-    return_to_start = bool(
-        result.get("return_to_start", False)
-    )
-
-    route_type = (
-        "Khép kín"
-        if return_to_start
-        else "Mở"
-    )
-
-    parameters_json = json.dumps(
-        result.get("parameters", {}),
-        ensure_ascii=False,
-    )
-
-    history_values = [
-        float(value)
-        for value in result.get("history", [])
-    ]
-
-    convergence_history_json = json.dumps(
-        history_values,
-        ensure_ascii=False,
-    )
-
-    route_indices_json = json.dumps(
-        [int(index) for index in display_route],
-        ensure_ascii=False,
-    )
-
-    created_at = datetime.now().isoformat(
-        timespec="seconds"
-    )
-
-    departure_time = _serialize_datetime(
-        result.get("departure_datetime")
-    )
-
-    insert_sql = """
-    INSERT INTO optimization_history (
-        created_at,
-        departure_time,
-        algorithm,
-        location_count,
-        start_location,
-        route_type,
-        route_text,
-        route_indices_json,
-        total_distance,
-        execution_time,
-        total_duration_minutes,
-        delivery_cost,
-        average_speed_kmh,
-        cost_per_km,
-        improvement_distance,
-        improvement_percentage,
-        evaluated_routes,
-        parameters_json,
-        convergence_history_json
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    """
-
-    values = (
-        created_at,
-        departure_time,
-        str(result["algorithm"]),
-        int(len(locations)),
-        start_location_name,
-        route_type,
-        route_text,
-        route_indices_json,
-        float(result["distance"]),
-        float(result["execution_time"]),
-        float(result["total_duration_minutes"]),
-        float(result["delivery_cost"]),
-        float(result["average_speed_kmh"]),
-        float(result["cost_per_km"]),
-        (
-            float(result["improvement_distance"])
-            if result.get("improvement_distance") is not None
-            else None
-        ),
-        (
-            float(result["improvement_percentage"])
-            if result.get("improvement_percentage") is not None
-            else None
-        ),
-        (
-            int(result["evaluated_routes"])
-            if result.get("evaluated_routes") is not None
-            else None
-        ),
-        parameters_json,
-        convergence_history_json,
-    )
+    insert_columns = [column for column in HISTORY_COLUMNS if column != "id"]
+    placeholders = ", ".join("?" for _ in insert_columns)
+    column_sql = ", ".join(insert_columns)
+    values = [payload.get(column) for column in insert_columns]
 
     with _connect(database_path) as connection:
         cursor = connection.execute(
-            insert_sql,
+            f"""
+            INSERT OR IGNORE INTO optimization_history ({column_sql})
+            VALUES ({placeholders})
+            """,
             values,
         )
-
         connection.commit()
 
-        record_id = cursor.lastrowid
+        created = cursor.rowcount == 1
 
-    if record_id is None:
-        raise RuntimeError(
-            "Không lấy được ID của bản ghi vừa lưu."
-        )
+        row = connection.execute(
+            """
+            SELECT id
+            FROM optimization_history
+            WHERE run_hash = ?
+            """,
+            (payload["run_hash"],),
+        ).fetchone()
 
-    return int(record_id)
+    if row is None:
+        raise RuntimeError("Không thể xác định bản ghi lịch sử vừa lưu.")
+
+    return created, int(row["id"])
 
 
-def get_optimization_history(
+def fetch_history(
+    algorithm: str | None = None,
     database_path: str | Path = DEFAULT_DATABASE_PATH,
-    limit: int | None = None,
 ) -> pd.DataFrame:
-    """
-    Đọc lịch sử tối ưu, bản ghi mới nhất hiển thị trước.
-    """
+    """Đọc lịch sử, có thể lọc theo thuật toán."""
 
     initialize_database(database_path)
 
-    query = """
-    SELECT
-        id,
-        created_at,
-        departure_time,
-        algorithm,
-        location_count,
-        start_location,
-        route_type,
-        route_text,
-        total_distance,
-        execution_time,
-        total_duration_minutes,
-        delivery_cost,
-        average_speed_kmh,
-        cost_per_km,
-        improvement_distance,
-        improvement_percentage,
-        evaluated_routes,
-        parameters_json,
-        convergence_history_json
-    FROM optimization_history
-    ORDER BY id DESC
-    """
-
+    query = "SELECT * FROM optimization_history"
     parameters: tuple[Any, ...] = ()
 
-    if limit is not None:
-        if limit < 1:
-            raise ValueError("Limit phải lớn hơn 0.")
+    if algorithm and algorithm != "Tất cả":
+        query += " WHERE algorithm = ?"
+        parameters = (algorithm,)
 
-        query += " LIMIT ?"
-        parameters = (int(limit),)
+    query += " ORDER BY datetime(created_at) DESC, id DESC"
 
     with _connect(database_path) as connection:
-        history = pd.read_sql_query(
-            query,
-            connection,
-            params=parameters,
-        )
+        dataframe = pd.read_sql_query(query, connection, params=parameters)
 
-    return history
+    return dataframe
+
+
+def list_algorithms(
+    database_path: str | Path = DEFAULT_DATABASE_PATH,
+) -> list[str]:
+    """Lấy danh sách thuật toán đã xuất hiện trong lịch sử."""
+
+    initialize_database(database_path)
+
+    with _connect(database_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT DISTINCT algorithm
+            FROM optimization_history
+            ORDER BY algorithm
+            """
+        ).fetchall()
+
+    return [str(row["algorithm"]) for row in rows]
 
 
 def delete_history_record(
     record_id: int,
     database_path: str | Path = DEFAULT_DATABASE_PATH,
 ) -> bool:
-    """
-    Xóa một bản ghi theo ID.
-
-    Trả về True nếu có bản ghi được xóa.
-    """
+    """Xóa một bản ghi theo ID."""
 
     initialize_database(database_path)
 
     with _connect(database_path) as connection:
         cursor = connection.execute(
-            """
-            DELETE FROM optimization_history
-            WHERE id = ?;
-            """,
+            "DELETE FROM optimization_history WHERE id = ?",
             (int(record_id),),
         )
-
         connection.commit()
 
-        return cursor.rowcount > 0
+    return cursor.rowcount == 1
 
 
-def clear_optimization_history(
+def delete_all_history(
     database_path: str | Path = DEFAULT_DATABASE_PATH,
 ) -> int:
-    """
-    Xóa toàn bộ lịch sử.
-
-    Trả về số bản ghi đã xóa.
-    """
+    """Xóa toàn bộ lịch sử và trả về số bản ghi đã xóa."""
 
     initialize_database(database_path)
 
     with _connect(database_path) as connection:
-        cursor = connection.execute(
-            "DELETE FROM optimization_history;"
+        cursor = connection.execute("DELETE FROM optimization_history")
+        connection.execute(
+            "DELETE FROM sqlite_sequence WHERE name = 'optimization_history'"
         )
-
-        deleted_count = cursor.rowcount
         connection.commit()
 
-    return int(deleted_count)
-
-
-def count_history_records(
-    database_path: str | Path = DEFAULT_DATABASE_PATH,
-) -> int:
-    """
-    Đếm tổng số bản ghi.
-    """
-
-    initialize_database(database_path)
-
-    with _connect(database_path) as connection:
-        cursor = connection.execute(
-            """
-            SELECT COUNT(*)
-            FROM optimization_history;
-            """
-        )
-
-        result = cursor.fetchone()
-
-    if result is None:
-        return 0
-
-    return int(result[0])
+    return max(int(cursor.rowcount), 0)
