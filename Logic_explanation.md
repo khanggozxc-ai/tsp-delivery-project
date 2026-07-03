@@ -1,5 +1,9 @@
 # Nhật Ký Đồ Án TSP
 
+> **Note:** File này dùng để cập nhật liên tục!
+
+---
+
 ## 1. Tổng Quan Dự Án
 Đồ án xây dựng hệ thống tối ưu hóa lộ trình giao hàng thông minh, giải quyết bài toán kinh điển Traveling Salesman Problem(TSP)
 
@@ -20,6 +24,8 @@
 | **2-opt** | Hoán đổi chéo đường đi | Cải thiện kết quả nhanh | Dễ bị kẹt ở cực tiểu |
 
 ## 3. Kiến thức cốt lỗi
+
+### Ngày 1: NỀN TẢNG & GIẢI THUẬT
 
 1. **Haversine Formula**: Công thức tính khoảng cách ngắn nhất giữa hai điểm trên bề mặt cầu dựa trên vĩ độ ($\phi$) và kinh độ ($\lambda$). 
 
@@ -61,29 +67,16 @@ Giả sử có 2 điểm trên bản đồ với tọa độ là $(\phi_1, \lamb
 
 ---
 
-## 4. Cấu trúc thư mục và chức năng
+## 4. Chức năng các file trọng tâm
 
-```text
-tsp-delivery-project/
-│
-├── app.py                      # Giao diện chính 
-├── requirements.txt            # Danh sách thư viện cần cài để chạy máy
-├── LOGIC_EXPLANATION.md        # File tài liệu giải thích logic bồ đang đọc
-│
-├── algorithms/                 # BỘ NÃO XỬ LÝ (Chứa các thuật toán tìm đường)
-│   ├── brute_force.py          # Thuật toán Vét cạn - Thử mọi cách để tìm đường ngắn nhất tuyệt đối
-│   ├── nearest_neighbor.py     # Thuật toán Hàng xóm gần nhất - Điểm nào gần thì đi trước 
-│   ├── genetic_algorithm.py    # Thuật toán Di truyền (GA) - Giải bài toán lớn bằng cách tiến hóa
-│   └── two_opt.py              # Thuật toán 2-opt - Gỡ rối các đoạn đường bị chéo nhau
-│
-├── services/                   # BỘ CÔNG CỤ TRỢ GIÚP (Tính toán các thông số phụ)
-│   ├── distance_service.py     # Tính khoảng cách giữa các điểm & Lập ma trận khoảng cách
-│   ├── cost_service.py         # Tính tiền xăng/chi phí dựa trên số km
-│   └── route_service.py          # Tính thời gian dự kiến xe chạy đến nơi (Phút)
-│
-└── data/                       # KHO DỮ LIỆU ĐẦU VÀO
-    ├── locations_5.csv         # Dữ liệu nhỏ (5 khách hàng) - Dùng để test Vét cạn
-    ├── locations_10.csv        # Dữ liệu vừa (10 khách hàng)
-    └── locations_20.csv        # Dữ liệu lớn (20 khách hàng trở lên) - Dùng cho GA và 2-opt 
+* `app.py`: Giao diện chính, hiện bản đồ và các nút bấm.
+* `requirements.txt`: Danh sách thư viện cần cài để chạy máy.
+* `algorithms/brute_force.py`: Thuật toán tìm đường ngắn nhất tuyệt đối.
+* `algorithms/nearest_neighbor.py`: Thuật toán tìm đường tham lam siêu tốc.
+* `services/distance_service.py`: Bộ đo khoảng cách và lập ma trận vuông.
+
+---
+
+### Ngày 2: THUẬT TOÁN NÂNG CAO & DATABASE
 
 
