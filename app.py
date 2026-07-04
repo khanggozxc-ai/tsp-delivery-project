@@ -1011,6 +1011,7 @@ def initialize_session_state() -> None:
 
     if "result" not in st.session_state:
         st.session_state.result = None
+    
 
     if "uploaded_csv_hash" not in st.session_state:
         st.session_state.uploaded_csv_hash = None
