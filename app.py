@@ -10,10 +10,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_folium import folium_static
 
-from algorithms.brute_force import solve_brute_force
 from algorithms.genetic_algorithm import solve_genetic_algorithm
-from algorithms.nearest_neighbor import solve_nearest_neighbor
-from algorithms.two_opt import solve_two_opt_from_result
 from services.delivery_service import (
     build_road_eta_table,
     calculate_delivery_cost,
@@ -28,7 +25,7 @@ from services.road_routing_service import (
     get_route_summary,
     locations_to_coordinates,
 )
-from views.history_dashboard import render_history_dashboard
+from views.ga_experiment_dashboard import render_ga_experiment_dashboard
 from utils.validators import (
     normalize_locations,
     validate_locations,
@@ -45,11 +42,7 @@ st.set_page_config(
 DEFAULT_DATA_PATH = "data/locations_5.csv"
 
 ALGORITHM_OPTIONS = [
-    "Nearest Neighbor",
-    "Nearest Neighbor + 2-opt",
-    "Brute Force",
     "Genetic Algorithm",
-    "Genetic Algorithm + 2-opt",
 ]
 
 ROUTING_PROFILE_MAPPING = {
@@ -813,7 +806,7 @@ def render_hero_header() -> None:
                 AI PROJECT · ROUTE OPTIMIZATION
             </div>
             <h1 class="hero-title">
-                Bài toán tối ưu lộ trình giao hàng bằng TSP
+                Bài toán tối ưu lộ trình giao hàng bằng Genetic Algorithm
             </h1>
             <div class="hero-subtitle">
                 Ứng dụng minh họa các thuật toán giải Traveling Salesman
@@ -822,7 +815,7 @@ def render_hero_header() -> None:
                 lưới đường giao thông thực tế.
             </div>
             <div class="hero-features">
-                <div class="hero-feature">5 phương pháp tối ưu</div>
+                <div class="hero-feature">1 mô hình tối ưu</div>
                 <div class="hero-feature">Định tuyến đường bộ</div>
                 <div class="hero-feature">ETA theo từng chặng</div>
                 <div class="hero-feature">Lịch sử và thống kê</div>
@@ -844,7 +837,7 @@ def render_quick_stats() -> None:
                 <div class="quick-stat-icon">A</div>
                 <div>
                     <div class="quick-stat-value">5 phương pháp</div>
-                    <div class="quick-stat-label">Exact, heuristic và metaheuristic</div>
+                    <div class="quick-stat-label">Genetic Algorithm cho TSP</div>
                 </div>
             </div>
             <div class="quick-stat">
@@ -1011,7 +1004,6 @@ def initialize_session_state() -> None:
 
     if "result" not in st.session_state:
         st.session_state.result = None
-    
 
     if "uploaded_csv_hash" not in st.session_state:
         st.session_state.uploaded_csv_hash = None
@@ -1048,13 +1040,13 @@ def render_sidebar() -> None:
         <div class="roadmap-card">
             <div class="roadmap-title">Ngày 1 · Nền tảng</div>
             <div class="roadmap-content">
-                Quản lý địa điểm · Brute Force · Nearest Neighbor
+                Quản lý địa điểm · Mô hình TSP · Dữ liệu đầu vào
             </div>
         </div>
         <div class="roadmap-card">
             <div class="roadmap-title">Ngày 2 · Tối ưu nâng cao</div>
             <div class="roadmap-content">
-                Genetic Algorithm · 2-opt · ETA · Chi phí · Bản đồ đường bộ
+                Genetic Algorithm · ETA · Chi phí · Bản đồ đường bộ
             </div>
         </div>
         <div class="roadmap-card">
@@ -1305,82 +1297,25 @@ def run_selected_algorithm(
     return_to_start: bool,
     ga_parameters: dict[str, int | float],
 ) -> dict:
-    """Chạy thuật toán mà người dùng lựa chọn."""
+    """Chạy thuật toán Genetic Algorithm cho bài toán TSP."""
 
-    if algorithm == "Brute Force":
-        return solve_brute_force(
-            distance_matrix=distance_matrix,
-            start_index=start_index,
-            return_to_start=return_to_start,
-            max_locations=10,
+    if algorithm != "Genetic Algorithm":
+        raise ValueError(
+            "Phiên bản báo cáo hiện tại chỉ sử dụng Genetic Algorithm."
         )
 
-    if algorithm == "Nearest Neighbor":
-        return solve_nearest_neighbor(
-            distance_matrix=distance_matrix,
-            start_index=start_index,
-            return_to_start=return_to_start,
-        )
-
-    if algorithm == "Nearest Neighbor + 2-opt":
-        base_result = solve_nearest_neighbor(
-            distance_matrix=distance_matrix,
-            start_index=start_index,
-            return_to_start=return_to_start,
-        )
-
-        result = solve_two_opt_from_result(
-            base_result=base_result,
-            distance_matrix=distance_matrix,
-            algorithm_name="Nearest Neighbor + 2-opt",
-        )
-        result["base_evaluated_routes"] = base_result.get(
-            "evaluated_routes"
-        )
-
-        # File cũ bị thiếu return tại nhánh này.
-        return result
-
-    if algorithm == "Genetic Algorithm":
-        return solve_genetic_algorithm(
-            distance_matrix=distance_matrix,
-            start_index=start_index,
-            return_to_start=return_to_start,
-            population_size=int(ga_parameters["population_size"]),
-            generations=int(ga_parameters["generations"]),
-            crossover_rate=float(ga_parameters["crossover_rate"]),
-            mutation_rate=float(ga_parameters["mutation_rate"]),
-            tournament_size=int(ga_parameters["tournament_size"]),
-            elite_size=int(ga_parameters["elite_size"]),
-            random_seed=int(ga_parameters["random_seed"]),
-        )
-
-    if algorithm == "Genetic Algorithm + 2-opt":
-        base_result = solve_genetic_algorithm(
-            distance_matrix=distance_matrix,
-            start_index=start_index,
-            return_to_start=return_to_start,
-            population_size=int(ga_parameters["population_size"]),
-            generations=int(ga_parameters["generations"]),
-            crossover_rate=float(ga_parameters["crossover_rate"]),
-            mutation_rate=float(ga_parameters["mutation_rate"]),
-            tournament_size=int(ga_parameters["tournament_size"]),
-            elite_size=int(ga_parameters["elite_size"]),
-            random_seed=int(ga_parameters["random_seed"]),
-        )
-
-        result = solve_two_opt_from_result(
-            base_result=base_result,
-            distance_matrix=distance_matrix,
-            algorithm_name="Genetic Algorithm + 2-opt",
-        )
-        result["base_evaluated_routes"] = base_result.get(
-            "evaluated_routes"
-        )
-
-        return result
-
-    raise ValueError(f"Thuật toán không được hỗ trợ: {algorithm}")
+    return solve_genetic_algorithm(
+        distance_matrix=distance_matrix,
+        start_index=start_index,
+        return_to_start=return_to_start,
+        population_size=int(ga_parameters["population_size"]),
+        generations=int(ga_parameters["generations"]),
+        crossover_rate=float(ga_parameters["crossover_rate"]),
+        mutation_rate=float(ga_parameters["mutation_rate"]),
+        tournament_size=int(ga_parameters["tournament_size"]),
+        elite_size=int(ga_parameters["elite_size"]),
+        random_seed=int(ga_parameters["random_seed"]),
+    )
 
 
 def enrich_result_with_delivery_information(
@@ -1470,7 +1405,7 @@ def render_algorithm_controls() -> None:
     with st.container(border=True):
         render_control_group_header(
             "Cấu hình bài toán",
-            "Xác định điểm xuất phát, thuật toán và dạng lộ trình.",
+            "Xác định điểm xuất phát, thuật toán Genetic Algorithm và dạng lộ trình.",
         )
 
         column_1, column_2, column_3 = st.columns(3)
@@ -1551,6 +1486,15 @@ def render_algorithm_controls() -> None:
             "Cấu hình Genetic Algorithm",
             expanded=True,
         ):
+            st.markdown(
+                """
+                **Ý nghĩa khoa học:** mỗi cá thể là một lộ trình TSP; quần thể là tập nhiều lộ trình.
+                Qua từng thế hệ, GA thực hiện **chọn lọc**, **lai ghép**, **đột biến** và **giữ cá thể ưu tú**
+                để giảm dần tổng quãng đường. Các tham số dưới đây điều khiển sự cân bằng giữa
+                **khám phá không gian nghiệm** và **khai thác các nghiệm tốt đã tìm thấy**.
+                """
+            )
+
             ga_column_1, ga_column_2, ga_column_3 = st.columns(3)
 
             with ga_column_1:
@@ -1560,6 +1504,11 @@ def render_algorithm_controls() -> None:
                     max_value=1000,
                     value=100,
                     step=10,
+                    help=(
+                        "Số cá thể/lộ trình trong mỗi thế hệ. Quần thể lớn "
+                        "giúp khảo sát không gian nghiệm rộng hơn nhưng làm "
+                        "tăng thời gian xử lý."
+                    ),
                 )
                 generations = st.number_input(
                     "Số thế hệ",
@@ -1567,6 +1516,11 @@ def render_algorithm_controls() -> None:
                     max_value=5000,
                     value=300,
                     step=50,
+                    help=(
+                        "Số vòng tiến hóa của quần thể. Nhiều thế hệ hơn "
+                        "giúp GA có thêm cơ hội hội tụ, đổi lại thời gian "
+                        "tính toán tăng."
+                    ),
                 )
 
             with ga_column_2:
@@ -1577,6 +1531,11 @@ def render_algorithm_controls() -> None:
                     value=0.8,
                     step=0.05,
                     format="%.2f",
+                    help=(
+                        "Xác suất để hai lộ trình cha mẹ trao đổi cấu trúc gen "
+                        "tạo lộ trình con mới. Tham số này hỗ trợ exploration, "
+                        "tức khám phá thêm vùng nghiệm trong không gian trạng thái."
+                    ),
                 )
                 mutation_rate = st.number_input(
                     "Tỷ lệ đột biến",
@@ -1585,6 +1544,12 @@ def render_algorithm_controls() -> None:
                     value=0.05,
                     step=0.01,
                     format="%.2f",
+                    help=(
+                        "Xác suất hoán đổi ngẫu nhiên vị trí các địa điểm "
+                        "trong một lộ trình, còn gọi là swap mutation. Vai trò "
+                        "là duy trì đa dạng di truyền và giảm nguy cơ mắc bẫy "
+                        "tối ưu cục bộ."
+                    ),
                 )
 
             with ga_column_3:
@@ -1594,6 +1559,11 @@ def render_algorithm_controls() -> None:
                     max_value=int(population_size),
                     value=min(5, int(population_size)),
                     step=1,
+                    help=(
+                        "Số cá thể được chọn ngẫu nhiên trong mỗi lần tournament. "
+                        "Tournament lớn làm áp lực chọn lọc mạnh hơn, nhưng nếu "
+                        "quá lớn có thể làm giảm đa dạng quần thể."
+                    ),
                 )
                 elite_size = st.number_input(
                     "Số cá thể ưu tú",
@@ -1601,12 +1571,20 @@ def render_algorithm_controls() -> None:
                     max_value=max(0, int(population_size) - 1),
                     value=min(2, int(population_size) - 1),
                     step=1,
+                    help=(
+                        "Số lộ trình tốt nhất được giữ nguyên sang thế hệ sau. "
+                        "Elitism giúp không đánh mất nghiệm tốt đã tìm được."
+                    ),
                 )
                 random_seed = st.number_input(
                     "Random seed",
                     min_value=0,
                     value=42,
                     step=1,
+                    help=(
+                        "Hạt giống ngẫu nhiên giúp kết quả có thể tái lập khi "
+                        "báo cáo hoặc kiểm thử cùng một cấu hình."
+                    ),
                 )
 
             ga_parameters = {
@@ -1673,7 +1651,7 @@ def render_algorithm_controls() -> None:
                     ga_parameters=ga_parameters,
                 )
 
-                # Giữ khoảng cách theo ma trận để hiển thị đúng phần 2-opt.
+                # Lưu khoảng cách theo ma trận để đối chiếu với tuyến GeoJSON cuối cùng.
                 result["optimized_matrix_distance"] = float(
                     result["distance"]
                 )
@@ -2035,21 +2013,46 @@ def create_route_map(
 # =========================================================
 
 def render_convergence_chart(result: dict) -> None:
-    """Hiển thị biểu đồ hội tụ của Genetic Algorithm."""
+    """Hiển thị đồ thị hội tụ và chỉ số khoa học của Genetic Algorithm."""
 
     history = result.get("history")
 
     if history is None or len(history) == 0:
+        st.info(
+            "Chưa có dữ liệu history của GA. Cần bảo đảm hàm "
+            "solve_genetic_algorithm() trả về danh sách khoảng cách tốt nhất "
+            "theo từng thế hệ."
+        )
         return
 
-    st.markdown("#### Biểu đồ hội tụ")
+    history_values = [float(value) for value in history]
+    initial_distance = history_values[0]
+    best_distance = min(history_values)
+    improvement = initial_distance - best_distance
+    improvement_percentage = (
+        improvement / initial_distance * 100
+        if initial_distance > 0
+        else 0.0
+    )
+    convergence_generation = history_values.index(best_distance) + 1
+
+    st.markdown("#### Đồ thị tiến trình hội tụ của Genetic Algorithm")
+    st.caption(
+        "Mỗi điểm trên đồ thị biểu diễn quãng đường tốt nhất mà quần thể "
+        "tìm được tại một thế hệ. Đường giảm dần cho thấy quá trình chọn lọc, "
+        "lai ghép và đột biến đang cải thiện lời giải."
+    )
+
+    metric_1, metric_2, metric_3, metric_4 = st.columns(4)
+    metric_1.metric("Thế hệ đầu", f"{initial_distance:.3f} km")
+    metric_2.metric("Tốt nhất", f"{best_distance:.3f} km")
+    metric_3.metric("Mức cải thiện", f"{improvement_percentage:.2f}%")
+    metric_4.metric("Hội tụ tại thế hệ", f"{convergence_generation}")
 
     convergence_data = pd.DataFrame(
         {
-            "Thế hệ": range(1, len(history) + 1),
-            "Khoảng cách tốt nhất (km)": [
-                float(value) for value in history
-            ],
+            "Thế hệ": range(1, len(history_values) + 1),
+            "Quãng đường tốt nhất (km)": history_values,
         }
     ).set_index("Thế hệ")
 
@@ -2058,51 +2061,14 @@ def render_convergence_chart(result: dict) -> None:
         use_container_width=True,
     )
 
-    st.caption(
-        "Khoảng cách tốt nhất được tìm thấy sau từng thế hệ."
-    )
-
-
-def render_two_opt_information(result: dict) -> None:
-    """Hiển thị mức cải thiện của 2-opt theo ma trận đường bộ."""
-
-    if "improvement_percentage" not in result:
-        return
-
-    st.markdown("#### Hiệu quả cải thiện của 2-opt")
-
-    before_distance = float(result["original_distance"])
-    after_distance = float(
-        result.get(
-            "optimized_matrix_distance",
-            result["distance"],
-        )
-    )
-
-    column_1, column_2, column_3 = st.columns(3)
-
-    with column_1:
-        st.metric(
-            "Trước 2-opt",
-            f"{before_distance:.3f} km",
-        )
-
-    with column_2:
-        st.metric(
-            "Sau 2-opt",
-            f"{after_distance:.3f} km",
-        )
-
-    with column_3:
-        st.metric(
-            "Tỷ lệ cải thiện",
-            f"{result['improvement_percentage']:.2f}%",
-            delta=f"-{result['improvement_distance']:.3f} km",
-        )
-
-    st.caption(
-        "Các chỉ số 2-opt được tính từ ma trận khoảng cách đường bộ; "
-        "tổng quãng đường phía trên lấy từ tuyến GeoJSON cuối cùng."
+    st.markdown(
+        """
+        **Cách diễn giải khi báo cáo:** ở những thế hệ đầu, quần thể còn ngẫu nhiên nên
+        lộ trình tốt nhất thường dài. Sau nhiều vòng chọn lọc, lai ghép và đột biến,
+        các cá thể tốt được giữ lại và tái tổ hợp, làm quãng đường giảm dần. Khi đường
+        biểu diễn gần như đi ngang, thuật toán đã đạt trạng thái hội tụ, thường là một
+        nghiệm tốt hoặc tối ưu cục bộ trong không gian nghiệm đang khảo sát.
+        """
     )
 
 
@@ -2250,7 +2216,6 @@ def render_result() -> None:
                 hide_index=True,
             )
 
-    render_two_opt_information(result)
     render_convergence_chart(result)
     render_eta_information(result)
 
@@ -2342,7 +2307,7 @@ def main() -> None:
         [
             "Quản lý địa điểm",
             "Tối ưu lộ trình",
-            "Lịch sử & thống kê",
+            "Khảo sát thực nghiệm GA",
         ]
     )
 
@@ -2359,7 +2324,7 @@ def main() -> None:
         render_result()
 
     with tab_history:
-        render_history_dashboard()
+        render_ga_experiment_dashboard()
 
 
 
